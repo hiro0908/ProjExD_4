@@ -159,7 +159,7 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird,angle0=0):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
@@ -167,6 +167,11 @@ class Beam(pg.sprite.Sprite):
         super().__init__()
         self.vx, self.vy = bird.dire
         angle = math.degrees(math.atan2(-self.vy, self.vx))
+        
+        #機能６
+        angle += angle0
+
+        
         self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
@@ -216,6 +221,24 @@ class Gravity(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
 
+#機能６
+class NeoBeam:
+    def __init__(self,bird: Bird,num):
+        """
+        __init__ の Docstring
+        
+        :bird : こうかとん
+        num : ビームの本数
+        """
+        self.bird = bird
+        self.num = num
+    def gen_beams(self):
+        beams_list = []
+        step = 100 // (self.num -1)
+        for angle in range(-50,51,step):
+            beams_list.append(Beam(self.bird,angle))
+        return beams_list
+        
 class Explosion(pg.sprite.Sprite):
     """
     爆発に関するクラス
@@ -353,7 +376,15 @@ def main():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+                #機能６
+                if key_lst[pg.K_LSHIFT]:
+                    nb = NeoBeam(bird, 3) #第２引数がビームの本数
+                    beams.add(nb.gen_beams())
+                else:
+                    #下のbeams.add(Beam(bird))を0つ分タブで上げる。
+                    
+                    
+                    beams.add(Beam(bird))
             if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT and score.value > 100:
                 bird.state = "hyper"
                 bird.hyper_life = 500
@@ -366,6 +397,10 @@ def main():
                 if score.value >= 200:
                     gravity.add(Gravity(400))
                     score.value -= 200
+                
+                
+                
+                
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
