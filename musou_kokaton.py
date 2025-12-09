@@ -184,6 +184,37 @@ class Beam(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+class Gravity(pg.sprite.Sprite):
+    """
+    重力フィールドに関するクラス
+    """
+    def __init__(self, life: int):
+        """
+        イベント用のサーフェイスの定義
+        引数：持続時間の整数型
+        """
+        super().__init__()
+        self.life = life
+        
+        self.alpha = 250
+        #イベント用サーフェイス
+        self.image = pg.Surface((WIDTH, HEIGHT)) 
+        pg.draw.rect(self.image, (0,0,0), (0,0,WIDTH,HEIGHT))
+        self.image.set_alpha(self.alpha)
+        
+        self.rect = self.image.get_rect()
+        
+    def update(self):
+        """
+        時間処理
+        """
+        self.alpha -= 0.5
+        pg.draw.rect(self.image, (0,0,0), (0,0,WIDTH,HEIGHT))
+        self.image.set_alpha(self.alpha)
+        
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
 
 class Explosion(pg.sprite.Sprite):
     """
@@ -310,6 +341,7 @@ def main():
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
+    gravity = pg.sprite.Group()
     emys = pg.sprite.Group()
     emps = pg.sprite.Group()
 
@@ -330,6 +362,10 @@ def main():
                 if score.value >= 20:
                     emps.add(EMP(emys,bombs,screen))
                     score.value -=20
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
+                if score.value >= 200:
+                    gravity.add(Gravity(400))
+                    score.value -= 200
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -349,6 +385,15 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for bomb in pg.sprite.groupcollide(bombs, gravity, True, False).keys():  # 力場と衝突した爆弾リスト
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.value += 1  # 1点アップ
+        
+        for emy in pg.sprite.groupcollide(emys, gravity, True, False).keys():  # 力場と衝突した敵機リスト
+            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+            score.value += 10  # 10点アップ
+            bird.change_img(6, screen)  # こうかとん喜びエフェクト
+
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             if bird.state == "hyper":
                 exps.add(Explosion(bomb, 50))  # 爆発エフェクト
@@ -363,6 +408,8 @@ def main():
                 time.sleep(2)
                 return
 
+        gravity.update()
+        gravity.draw(screen)
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
